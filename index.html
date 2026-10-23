@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SPJ — Sistem Pemanduan Jalan</title>
+<meta name="description" content="Sistem Pemanduan Jalan — navigasi Bahasa Melayu. Pandu Dengan Yakin, Sampai Dengan Selamat.">
+<meta name="theme-color" content="#1565c0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SPJ">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+  :root { --biru: #1565c0; --gelap: #0d47a1; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--gelap); font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
+  #spj { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; background: #eef2f6; }
+  .skrin { position: fixed; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 24px;
+           text-align: center; color: #fff; background: linear-gradient(160deg, var(--biru), var(--gelap)); transition: opacity .35s; }
+  .skrin img { width: 168px; height: 168px; filter: drop-shadow(0 10px 22px rgba(0,0,0,.35)); }
+  .skrin h1 { margin: 10px 0 0; font-size: 24px; }
+  .skrin p { margin: 0; opacity: .9; font-size: 15px; max-width: 420px; line-height: 1.45; }
+  .pusing { width: 34px; height: 34px; margin-top: 18px; border: 4px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: p 1s linear infinite; }
+  @keyframes p { to { transform: rotate(360deg); } }
+  .skrin button, .skrin a.btn { margin-top: 14px; background: #fff; color: var(--gelap); border: 0; border-radius: 14px; padding: 12px 22px; font: 700 15px system-ui, sans-serif; text-decoration: none; cursor: pointer; }
+  .skrin small { opacity: .75; margin-top: 8px; }
+  .hilang { opacity: 0; pointer-events: none; }
+  #pasang { position: fixed; z-index: 6; left: 50%; transform: translateX(-50%); bottom: calc(14px + env(safe-area-inset-bottom, 0px)); width: min(94vw, 460px);
+            display: flex; align-items: center; gap: 10px; background: #1b2027; color: #fff; padding: 10px 12px; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,.35); font-size: 14px; }
+  #pasang img { width: 36px; height: 36px; border-radius: 9px; }
+  #pasang span { flex: 1; line-height: 1.3; }
+  #pasang button { border: 0; border-radius: 10px; padding: 9px 14px; font: 700 14px system-ui, sans-serif; cursor: pointer; }
+  #btnPasang { background: var(--biru); color: #fff; }
+  #btnTutupPasang { background: transparent; color: #bbb; padding: 9px 6px; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- Aplikasi SPJ (Google Apps Script) dibuka skrin penuh — URL panjang tidak kelihatan -->
+<iframe id="spj" title="Sistem Pemanduan Jalan"
+  allow="geolocation *; camera *; microphone *; screen-wake-lock *; fullscreen *; autoplay *; clipboard-write *; web-share *"
+  allowfullscreen></iframe>
+
+<div id="muat" class="skrin">
+  <img src="ikon-512.png" alt="Logo Sistem Pemanduan Jalan">
+  <h1>Sistem Pemanduan Jalan</h1>
+  <p>Pandu Dengan Yakin, Sampai Dengan Selamat.</p>
+  <div class="pusing"></div>
+  <small id="teksMuat">Memuatkan…</small>
+  <a id="bukaTerus" class="btn" hidden target="_top">Buka terus</a>
+</div>
+
+<div id="luar" class="skrin" hidden>
+  <img src="ikon-192.png" alt="">
+  <h1>📴 Tiada sambungan internet</h1>
+  <p>SPJ memerlukan internet untuk dibuka. Selepas dibuka, peta & laluan yang telah dimuat turun terus berfungsi walaupun liputan terputus.</p>
+  <button onclick="location.reload()">Cuba Lagi</button>
+</div>
+
+<div id="tetapan" class="skrin" hidden>
+  <h1>⚙️ URL SPJ belum ditetapkan</h1>
+  <p>Buka fail <b>index.html</b> dan tampal URL aplikasi web SPJ (berakhir dengan <b>/exec</b>) pada baris <b>URL_SPJ</b>.</p>
+</div>
+
+<div id="pasang" hidden>
+  <img src="ikon-192.png" alt="">
+  <span id="teksPasang"><b>Pasang SPJ</b><br>Ikon pada skrin utama, tanpa bar alamat.</span>
+  <button id="btnPasang">Pasang</button>
+  <button id="btnTutupPasang" aria-label="Tutup">✕</button>
+</div>
+
+<script>
+  // ==================== TETAPAN ====================
+  // Tampal URL aplikasi web SPJ anda (Terapkan › Urus penerapan › URL aplikasi web, berakhir dengan /exec)
+  const URL_SPJ = 'https://script.google.com/macros/s/AKfycbwYX8iDnD3YdRrhbEgLsdOCmd7woZeO0Bsbm7cH4cZsoa0SfRvtfd6hnWfsNcxLzbVC/exec';
+  // =================================================
+
+  const $ = id => document.getElementById(id);
+  const sah = /^https:\/\/script\.google\.com\/(a\/macros\/[^/]+|macros)\/s\/[\w-]+\/exec/.test(URL_SPJ);
+  let dimuat = false;
+
+  function tutupMuat() { if (dimuat) return; dimuat = true; $('muat').classList.add('hilang'); setTimeout(() => $('muat').hidden = true, 400); }
+  function buka() {
+    if (!sah) { $('muat').hidden = true; $('tetapan').hidden = false; return; }
+    if (!navigator.onLine) { $('muat').hidden = true; $('luar').hidden = false; return; }
+    $('luar').hidden = true;
+    const f = $('spj');
+    f.addEventListener('load', () => setTimeout(tutupMuat, 600), { once: true });
+    f.src = URL_SPJ + location.search;              // cth: ?page=admin diteruskan
+    $('bukaTerus').href = URL_SPJ + location.search;
+    setTimeout(() => { if (!dimuat) { $('teksMuat').textContent = 'Sambungan perlahan…'; $('bukaTerus').hidden = false; } }, 20000);
+  }
+  window.addEventListener('online', () => { if (!dimuat) location.reload(); });
+  buka();
+
+  // ---------- Pasang sebagai aplikasi (PWA) ----------
+  const standalone = matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches || navigator.standalone;
+  const ditolak = () => { try { return Date.now() - Number(localStorage.getItem('spj_pasang_tolak') || 0) < 7 * 864e5; } catch (e) { return false; } };
+  let promptPasang = null;
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault(); promptPasang = e;
+    if (!standalone && !ditolak()) setTimeout(() => $('pasang').hidden = false, 4000);
+  });
+  $('btnPasang').onclick = async () => {
+    if (promptPasang) { promptPasang.prompt(); await promptPasang.userChoice; promptPasang = null; }
+    $('pasang').hidden = true;
+  };
+  $('btnTutupPasang').onclick = () => { $('pasang').hidden = true; try { localStorage.setItem('spj_pasang_tolak', Date.now()); } catch (e) { } };
+  window.addEventListener('appinstalled', () => { $('pasang').hidden = true; });
+  // iPhone/iPad: tiada butang pasang automatik — tunjuk cara
+  if (/iphone|ipad|ipod/i.test(navigator.userAgent) && !standalone && !ditolak()) {
+    $('teksPasang').innerHTML = '<b>Pasang SPJ</b><br>Tekan ikon Kongsi ⬆️ › <b>Tambah ke Skrin Utama</b>';
+    $('btnPasang').hidden = true;
+    setTimeout(() => $('pasang').hidden = false, 4000);
+  }
+
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => { });
+</script>
+</body>
+</html>

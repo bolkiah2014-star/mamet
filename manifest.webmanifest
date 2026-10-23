@@ -1,0 +1,19 @@
+{
+  "name": "Sistem Pemanduan Jalan",
+  "short_name": "SPJ",
+  "description": "Navigasi jalan raya Bahasa Melayu — Pandu Dengan Yakin, Sampai Dengan Selamat.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0d47a1",
+  "theme_color": "#1565c0",
+  "lang": "ms",
+  "categories": ["navigation", "travel"],
+  "icons": [
+    { "src": "ikon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "ikon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "ikon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
